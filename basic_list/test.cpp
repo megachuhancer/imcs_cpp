@@ -35,7 +35,7 @@ template<class T> void test(const T& actual, const T& expected, const char* errM
 		clog << "FAILED, " << errMsg << ", line " << line << endl;
 }
 
-template<class T> void test(const List<T>& actual, const T* expected, size_t size, const char* errMsg, int line) {
+template<class T> void test(const List<T>& actual, const T* expected, size_t size, const char* errMsg, size_t line) {
 	testNum++;
 	clog << "Test " << testNum << ": ";
 	if (cmp(actual, expected, size))
@@ -44,8 +44,22 @@ template<class T> void test(const List<T>& actual, const T* expected, size_t siz
 		clog << "FAILED, " << errMsg << ", line " << line << endl;
 }
 
+template<class T, class F> void test_exception(char* name, size_t line) {
+	bool caught = false;
+	try {
+		F::f();
+	} catch(T) {
+		caught = true;
+		clog << "OK: " << name << " exception caught" << endl;
+	} catch(...) {
+		clog << "FAIL: unexpected exception caught, line " << line << endl;
+	}
+	if (!caught) clog << "FAIL: " << name << " exception expected, line " << line << endl;
+}
+
 #define t(a, e, m) test(a, e, m, __LINE__)
 #define tl(a, e, s, m) test(a, e, s, m, __LINE__)
+#define te(t, f, n) test_exception<t, f>(n, __LINE__)
 
 int main() {
 	t(List<int>::List().size(), (size_t) 0, "List()");
@@ -106,6 +120,35 @@ int main() {
 		tl(l, e, 5, "erase(Iterator, Iterator)");
 		l.clear();
 		t(l.size(), (size_t) 0, "clear()");
+	}
+
+	{
+		struct S {
+			static void f() {
+				List<int> l(6, 6);
+				for (List<int>::Iterator i = l.begin(); ; ++i);
+			}
+		};
+		te(List<int>::Iterator::OutOfRange, S, "OutOfRange");
+	}
+
+	{
+		struct S {
+			static void f() {
+				*List<int>(6, 6).end();
+			}
+		};
+		te(List<int>::Iterator::IteratorIsNotDereferencable, S, "IteratorIsNotDereferencable");
+	}
+
+	{
+		struct S {
+			static void f() {
+				List<int> l(6, 6);
+				l.insert(--l.begin(), 1);
+			}
+		};
+		te(List<int>::Iterator::IteratorIsBeforeFirst, S, "IteratorIsBeforeFirst");
 	}
 	return 0;
 }
