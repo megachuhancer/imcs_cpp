@@ -1,0 +1,1 @@
+g++ test.cpp string/my_string.cpp string/proxy_char.cpp string/string_content.cpp -Wall -Wextra
